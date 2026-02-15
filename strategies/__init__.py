@@ -13,7 +13,7 @@ from .strategy_base import (
     Strategy,
     TemplateStrategy,
 )
-from .rsi_pair_strategy import RSIPairStrategy
+from .rsi_pair_strategy import RSIPairStrategy, VRPAdaptivePairStrategy
 
 def _build_registry() -> Dict[str, Type[Strategy]]:
     registry: Dict[str, Type[Strategy]] = {}
@@ -33,6 +33,7 @@ def _build_registry() -> Dict[str, Type[Strategy]]:
     registry.setdefault("demo", DemoStrategy)
     registry.setdefault("fast", DemoStrategy)
     registry.setdefault("rsi_pair", RSIPairStrategy)
+    registry.setdefault("vrp_adaptive", VRPAdaptivePairStrategy)
     return registry
 
 

@@ -231,3 +231,73 @@ class DemoStrategy(Strategy):
 ## To use your strategy:
 ##   python run_live.py --symbol AAPL --strategy mystrategy --live
 ##
+def prepare_vrp_data(rsp_df, spy_df, vix_df):
+    """
+    HELPER: Run this before strategy.run()
+    Combines three dataframes into one that the strategy can read.
+    """
+    # Align indices to Datetime
+    for d in [rsp_df, spy_df, vix_df]:
+        if 'Datetime' in d.columns:
+            d.set_index('Datetime', inplace=True)
+           
+    # Merge SPY and VIX into the RSP dataframe
+    merged = rsp_df.copy()
+    merged['Close_SPY'] = spy_df['Close']
+    merged['Close_VIX'] = vix_df['Close']
+   
+    return merged.dropna().reset_index()
+
+class VRPAdaptivePairStrategy(Strategy):
+    """
+    RSP/SPY Pair Strategy with VRP Overlay.
+    Run this on the 'merged' dataframe.
+    """
+    def __init__(self, rsi_period=14, rsi_threshold=70, position_size=100.0):
+        self.rsi_period = rsi_period
+        self.rsi_threshold = rsi_threshold
+        self.position_size = position_size
+
+    def add_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        # 1. RSI for RSP (Close) and SPY (Close_SPY)
+        for col, name in [('Close', 'rsp'), ('Close_SPY', 'spy')]:
+            delta = df[col].diff()
+            gain = delta.where(delta > 0, 0).rolling(self.rsi_period).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(self.rsi_period).mean()
+            df[f'rsi_{name}'] = 100 - (100 / (1 + (gain/loss)))
+
+        # 2. VRP (VIX - 21d Realized Vol)
+        spy_ret = df['Close_SPY'].pct_change()
+        real_vol = spy_ret.rolling(21).std() * np.sqrt(252) * 100
+        df['vrp'] = df['Close_VIX'] - real_vol
+       
+        # 3. VRP Z-Score (State detection)
+        df['vrp_z'] = (df['vrp'] - df['vrp'].rolling(63).mean()) / df['vrp'].rolling(63).std()
+        return df
+
+    def generate_signals(self, df: pd.DataFrame) -> pd.DataFrame:
+        # Standard setup for your base class
+        df['signal'] = 0
+        df['target_qty'] = 0.0
+       
+        # LOGIC:
+        # If SPY RSI > 70 AND VRP is safe (Z > -1.5) -> Buy RSP (implies shorting SPY)
+        # If RSP RSI > 70 AND VRP is safe -> Short RSP (implies longing SPY)
+       
+        is_safe = df['vrp_z'] > -1.5
+       
+        # Entry Signals
+        df.loc[(df['rsi_spy'] > self.rsi_threshold) & is_safe, 'signal'] = 1
+        df.loc[(df['rsi_rsp'] > self.rsi_threshold) & is_safe, 'signal'] = -1
+       
+        # Position tracking (carry the signal forward)
+        df['position'] = df['signal'].replace(0, np.nan).ffill().fillna(0)
+       
+        # Sizing: If VRP is negative (0 > Z > -1.5), cut size in half.
+        # If Z < -1.5 (Panic), size is 0 (Emergency Exit).
+        df['target_qty'] = self.position_size
+        df.loc[df['vrp_z'] <= 0, 'target_qty'] *= 0.5
+        df.loc[~is_safe, 'target_qty'] = 0
+        df.loc[~is_safe, 'position'] = 0
+       
+        return df
