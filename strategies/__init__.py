@@ -13,8 +13,7 @@ from .strategy_base import (
     Strategy,
     TemplateStrategy,
 )
-from .rsi_pair_strategy import RSIPairStrategy
-from .zscore_pair_strategy import ZScorePairStrategy
+from .rsi_pair_strategy import RSIPairStrategy, VRPAdaptivePairStrategy
 
 def _build_registry() -> Dict[str, Type[Strategy]]:
     registry: Dict[str, Type[Strategy]] = {}
@@ -34,8 +33,7 @@ def _build_registry() -> Dict[str, Type[Strategy]]:
     registry.setdefault("demo", DemoStrategy)
     registry.setdefault("fast", DemoStrategy)
     registry.setdefault("rsi_pair", RSIPairStrategy)
-    registry.setdefault("zscore_pair", ZScorePairStrategy)
-    registry.setdefault("pair_zscore", ZScorePairStrategy)
+    registry.setdefault("vrp_adaptive", VRPAdaptivePairStrategy)
     return registry
 
 
@@ -62,7 +60,6 @@ __all__ = [
     "MovingAverageStrategy",
     "CryptoTrendStrategy",
     "DemoStrategy",
-    "ZScorePairStrategy",
     "get_strategy_class",
     "list_strategies",
 ]
