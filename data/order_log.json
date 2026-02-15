@@ -1347,3 +1347,5 @@
 {"event": "rejected", "timestamp": 1770700109.5080051, "data": {"order_id": "order_115", "reason": "Position limit exceeded"}}
 {"event": "rejected", "timestamp": 1770700109.509194, "data": {"order_id": "order_116", "reason": "Position limit exceeded"}}
 {"event": "rejected", "timestamp": 1770700109.5103722, "data": {"order_id": "order_117", "reason": "Position limit exceeded"}}
+{"event": "submitted", "timestamp": 1771143741.707274, "data": {"order_id": "order_0", "side": "sell", "price": 109.83521825053414, "qty": 10, "timestamp": 1704102600.0}}
+{"event": "execution", "timestamp": 1771143741.707784, "data": {"order_id": "order_0", "status": "filled", "filled_qty": 10, "avg_price": 109.83521825053414}}
